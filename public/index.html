@@ -91,6 +91,11 @@ button{font:inherit;color:inherit}
 .tab{flex:none;background:none;border:0;border-bottom:3px solid transparent;padding:8px 12px;margin-bottom:-1px;cursor:pointer;font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--fg)}
 .tab:hover{color:var(--fg)}
+@media (max-width:919px){
+  .tabs{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;grid-auto-flow:column;gap:6px;border-bottom:0;overflow:visible}
+  .tab{margin:0;border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:10px 8px;font-size:15px;white-space:normal;text-align:center;line-height:1.1}
+  .tab[aria-selected="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+}
 
 .layout{display:grid;gap:20px}
 @media (min-width:920px){
@@ -245,6 +250,25 @@ tr.tie td.club,tr.tie td.pts{color:var(--amber)}
 .meter i{display:block;height:100%;background:currentColor}
 .method{font-size:12.5px;color:var(--faint);margin:0;max-width:78ch}
 
+/* Barra fixa da % no celular */
+.tsticky{display:none}
+@media (max-width:919px){
+  .tsticky{display:flex;align-items:center;gap:10px;position:sticky;top:calc(var(--top-h) + env(safe-area-inset-top,0px));z-index:20;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;box-shadow:0 12px 18px -12px rgba(60,40,10,.45)}
+  .tsticky.hl{border-color:var(--gre)}
+  .tsticky .tn{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tsticky .tp2{color:var(--muted);font-size:13px;white-space:nowrap}
+  .tsticky .tv{margin-left:auto;text-align:right;line-height:1.1}
+  .tsticky .tv b{display:block;font-family:var(--font-display);font-weight:800;font-size:28px}
+  .tsticky .tv small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .tsticky.bad .tv b{color:var(--red)}.tsticky.mid .tv b{color:var(--amber)}.tsticky.good .tv b{color:var(--green)}
+}
+
+/* Data dos dados e dica de uso */
+.upd{margin:-8px 0 14px;font-size:12.5px;color:var(--muted);text-align:center}
+.tip{display:flex;gap:8px;align-items:center;background:var(--amber-tint);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--fg)}
+.tip svg{width:16px;height:16px;flex:none;color:var(--amber)}
+.main>.tip{margin-bottom:-6px}
+
 /* Painel de desempate */
 .scrim{position:fixed;inset:0;background:rgba(27,25,21,.45);z-index:50;display:flex;justify-content:center;align-items:flex-end}
 @media (min-width:720px){.scrim{align-items:center}}
@@ -299,8 +323,9 @@ tr.tie td.club,tr.tie td.pts{color:var(--amber)}
     <button class="tab" role="tab" type="button" data-view="all" id="tab-all">Tabela completa</button>
     <button class="tab" role="tab" type="button" data-view="z4" id="tab-z4">Luta contra o Z4</button>
     <button class="tab" role="tab" type="button" data-view="lib" id="tab-lib">Pega Liberta ou não</button>
-    <button class="tab" role="tab" type="button" data-view="team" id="tab-team">Por time</button>
+    <button class="tab" role="tab" type="button" data-view="team" id="tab-team">% por time</button>
   </div>
+  <p class="upd">Dados após a 31ª rodada · atualizado em 20/10/2026</p>
   <div class="layout">
     <aside class="side" id="side" role="tabpanel"></aside>
     <main class="main" id="main"></main>
@@ -545,6 +570,7 @@ function render(){
   const T=compute();
   $('side').classList.toggle('is-table',view!=='team');
   if(view==='team')renderTeam();else{renderSide(T);renderMain()}
+  addTip();
   renderTop(T);
   if(panelTeams)renderPanel();
   save();
@@ -571,7 +597,16 @@ $('side').addEventListener('click',e=>{
   const tb=e.target.closest('[data-tie]');if(tb){openPanel(lastGroups[+tb.dataset.tie].teams.map(t=>t.k));return}
   if(e.target.closest('#clear'))clearAll();
 });
+let tipDone=false;
+const TIP_ICO='<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/><path fill="currentColor" d="M7.2 7h1.6v5H7.2zM7.2 4h1.6v1.6H7.2z"/></svg>';
+function addTip(){
+  if(tipDone)return;
+  const m=$('main'),g=m.querySelector('.game'),d=document.createElement('div');d.className='tip';
+  if(g){d.innerHTML=TIP_ICO+'<span>Toque em quem vence, ou em Empate. Toque de novo para desmarcar.</span>';g.appendChild(d)}
+  else{d.innerHTML=TIP_ICO+'<span>Abra uma rodada e toque em quem vence, ou em Empate.</span>';m.insertBefore(d,m.firstChild)}
+}
 function clickResult(id,v){
+  tipDone=true;
   const g=GBYID[id],had=!!state.sc[id];
   if(state.res[id]===v){delete state.res[id];delete state.sc[id];if(had)toast(`Resultado desmarcado e placar de ${nm(g.h)} x ${nm(g.a)} descartado.`)}
   else{delete state.sc[id];state.res[id]=v;if(had){const d=defScore(v);toast(`Placar descartado em ${nm(g.h)} x ${nm(g.a)}: voltou para ${d.h} x ${d.a}.`)}}
@@ -579,9 +614,9 @@ function clickResult(id,v){
 }
 $('main').addEventListener('click',e=>{
   if(e.target.closest('#unfilter')){filter[view]=null;render();return}
-  const ab=e.target.closest('[data-round]');if(ab){const r=+ab.dataset.round;openR.has(r)?openR.delete(r):openR.add(r);renderMain();return}
+  const ab=e.target.closest('[data-round]');if(ab){const r=+ab.dataset.round;openR.has(r)?openR.delete(r):openR.add(r);renderMain();addTip();return}
   const b=e.target.closest('.opt[data-id]');if(b){clickResult(b.dataset.id,b.dataset.v);return}
-  const tb=e.target.closest('.opt[data-tid]');if(tb){const id=tb.dataset.tid;if(tst.res[id]===tb.dataset.v)delete tst.res[id];else tst.res[id]=tb.dataset.v;renderTeam();save();return}
+  const tb=e.target.closest('.opt[data-tid]');if(tb){tipDone=true;const id=tb.dataset.tid;if(tst.res[id]===tb.dataset.v)delete tst.res[id];else tst.res[id]=tb.dataset.v;renderTeam();addTip();save();return}
 });
 let undo=null;
 function clearAll(){
@@ -683,12 +718,12 @@ function renderTeam(){
   const k=tst.team,list=teamGames(k);
   const total=Object.keys(tst.res).length;
   $('side').innerHTML=`
-    <div class="st-head"><h2>Por time</h2></div>
+    <div class="st-head"><h2>% por time</h2></div>
     <div class="seg" role="group" aria-label="Grupo de clubes">
       <button type="button" data-grp="z4" aria-pressed="${tst.group==='z4'}">Luta contra o Z4</button>
       <button type="button" data-grp="lib" aria-pressed="${tst.group==='lib'}">Pega Liberta ou não</button>
     </div>
-    <div class="row"><span class="hint" style="margin:0">${total} ${total===1?'jogo marcado':'jogos marcados'} no total</span><button class="btn danger" type="button" id="tclear">Desselecionar tudo</button></div>
+    <div class="row"><span class="hint" style="margin:0">${total} ${total===1?'jogo marcado':'jogos marcados'} no total</span><button class="btn danger" type="button" id="tclear">Limpar tudo</button></div>
     <div class="tpick">${grp.map(t=>{const tg=teamGames(t),n=tg.filter(g=>tst.res[g.id]).length;
       return `<button type="button" class="tp" data-team="${t}" aria-pressed="${t===k}">${crest(t)}<span class="n">${nm(t)}</span><span class="p num">${BASE[t].pts} pts</span><span class="c num${n?' some':''}">${n}/${tg.length} jogos selecionados</span></button>`}).join('')}</div>
     <p class="hint">Os jogos marcados valem para todos os clubes: marcar jogos de outro time muda a chance deste.</p>`;
@@ -696,10 +731,11 @@ function renderTeam(){
   for(const g of list){const r=tst.res[g.id];if(!r)continue;set++;const mine=g.h===k?'H':'A';pts+=r==='D'?1:r===mine?3:0}
   const missing=list.length-set,mc=monteCarlo(tst.res)[k],base=BASELINE[k];
   const isLib=tst.group==='lib';
-  const p=isLib?mc.top5:mc.down,pb=isLib?base.top5:base.down;
-  const cls=isLib?(p>=.5?'good':p>=.15?'mid':'bad'):(p>=.5?'bad':p>=.15?'mid':'good');
+  const p=isLib?mc.top5:1-mc.down,pb=isLib?base.top5:1-base.down;
+  const cls=isLib?(p>=.5?'good':p>=.15?'mid':'bad'):(p>=.85?'good':p>=.5?'mid':'bad');
   const isH=k===HL;
   $('main').innerHTML=`
+    <div class="tsticky ${cls}${isH?' hl':''}" aria-hidden="true">${crest(k)}<span class="tn">${nm(k)}</span><span class="tp2 num">${pts} pts</span><span class="tv"><small>${isLib?'Libertadores':'Permanência'}</small><b class="num">${pct(p)}</b></span></div>
     <div class="games">${list.map(g=>{const r=tst.res[g.id],gH=HL&&(g.h===HL||g.a===HL),direct=grp.includes(g.h)&&grp.includes(g.a);
       return `<div class="game${gH?' hl':''}">
         <div class="g-meta"><span>${g.r===21?'Adiado · 21ª rodada':g.r+'ª rodada'}</span><span class="num">${g.d}</span>${direct?'<span class="tag direct">Confronto direto</span>':''}</div>
@@ -713,9 +749,9 @@ function renderTeam(){
       <div class="kpis">
         <div class="kpi"><span class="lab">Pontos</span><span class="big num">${pts}</span>
           <span class="sub">${missing?`${set} de ${list.length} jogos escolhidos. Com os ${missing} restantes sorteados, a média final fica em ${mc.avg.toFixed(1).replace('.',',')}.`:'Pontuação final em 38 jogos.'}</span></div>
-        <div class="kpi ${cls}"><span class="lab">${isLib?'Chance de Libertadores':'Chance de cair'}</span><span class="big num">${pct(p)}</span>
+        <div class="kpi ${cls}"><span class="lab">${isLib?'Chance de Libertadores':'Chance de permanência na Série A'}</span><span class="big num">${pct(p)}</span>
           <div class="meter" aria-hidden="true"><i style="width:${(p*100).toFixed(1)}%"></i></div>
-          <span class="sub">${isLib?`Termina no G5. Se abrir G6: ${pct(mc.top6)} · G7: ${pct(mc.top7)}.`:'Termina do 17º ao 20º.'}</span></div>
+          <span class="sub">${isLib?`Termina no G5. Se abrir G6: ${pct(mc.top6)} · G7: ${pct(mc.top7)}.`:'Termina entre o 1º e o 16º.'}</span></div>
         <div class="kpi"><span class="lab">Sem marcar nada</span><span class="big num">${pct(pb)}</span><span class="sub">Chance antes de qualquer resultado marcado.</span></div>
       </div>
       <p class="method">${SIMS.toLocaleString('pt-BR')} simulações do campeonato inteiro. Os jogos não marcados são sorteados por um modelo de Poisson: média de gols da Série A 2026, ataque e defesa de cada clube (gols pró e contra por jogo, puxados levemente para a média) e vantagem de mando. Desempate por pontos, vitórias, saldo e gols pró. O G6 e o G7 dependem dos finalistas da Copa do Brasil e do campeão da Libertadores.</p>

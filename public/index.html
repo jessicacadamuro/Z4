@@ -369,14 +369,9 @@ const esc=s=>String(s);
 const KEY='bf-sim-2026-v2';
 let state={res:{},sc:{}},view='all',HL=null,filter={all:null,z4:null,lib:null},openR=new Set();
 let tst={group:'z4',team:'GRE',res:{}};
-try{const s=JSON.parse(localStorage.getItem(KEY)||'null');
-  if(s){
-    if(s.state&&s.state.res){state=s.state;for(const id in state.res)if(!GBYID[id])delete state.res[id];for(const id in state.sc)if(!GBYID[id]||!state.res[id])delete state.sc[id]}
-    if(['all','z4','lib','team'].includes(s.view))view=s.view;
-    if(s.HL&&NAMES[s.HL])HL=s.HL;
-    if(s.tst&&s.tst.res){tst=s.tst;for(const id in tst.res)if(!GBYID[id])delete tst.res[id]}
-  }}catch(e){}
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({state,view,HL,tst}))}catch(e){}};
+// a página sempre abre na tela inicial: nada é guardado entre visitas
+const save=()=>{};
+try{localStorage.removeItem(KEY)}catch(e){}
 
 const defScore=r=>r==='H'?{h:1,a:0}:r==='A'?{h:0,a:1}:{h:0,a:0};
 const scoreOf=g=>state.sc[g.id]||defScore(state.res[g.id]);
@@ -449,10 +444,17 @@ function cfg(v){
 const viewGames=v=>v==='all'?GAMES:GAMES.filter(g=>cfg(v).keys.includes(g.h)||cfg(v).keys.includes(g.a));
 function posCls(v,pos){if(pos>=17)return'zone';if(v!=='z4'&&pos<=5)return'g5';if(v!=='z4'&&pos<=7)return'g7';return''}
 let lastGroups=[];
+// aviso de empate só quando algum dos clubes empatados está numa zona (Libertadores até o 7º ou rebaixamento a partir do 17º)
+const inZone=(v,pos)=>pos>=17||(v!=='z4'&&pos<=7);
+function zoneGroups(v,arr,groups,off){
+  const keep=groups.filter(g=>g.teams.some(t=>inZone(v,off+arr.findIndex(a=>a.k===t.k))));
+  arr.forEach(a=>{a.tie=keep.some(g=>g.teams.some(t=>t.k===a.k))});
+  return keep;
+}
 
 function renderSide(T){
   const c=cfg(view);
-  const {arr,groups}=sortKeys(c.keys,T);lastGroups=groups;
+  const {arr,groups:allG}=sortKeys(c.keys,T);const groups=zoneGroups(view,arr,allG,c.off);lastGroups=groups;
   const rows=[];
   const fixedRow=(k,pos,green)=>{const t=T[k];return `<tr class="fixed ${green?'g5':'zone'}${k===HL?' hl':''}${filter[view]===k?' sel':''}" data-team="${k}"><td class="pos num">${pos}º</td><td class="club"><span class="club-in">${crest(k)}<span class="nm">${t.name}</span><span class="ftag ${green?'green':'red'}">${c.fixedTag}</span></span></td><td class="r pts num">${t.pts}</td><td class="r num">${t.j}</td></tr>`};
   sortKeys(c.fixedTop,T).arr.forEach((t,i)=>rows.push(fixedRow(t.k,1+i,true)));
@@ -526,7 +528,7 @@ function renderTop(T){
   }
   const i=full.arr.findIndex(t=>t.k===HL),t=full.arr[i],pos=i+1;
   let chip=pos>=17?'<span class="chip red">Zona de rebaixamento</span>':pos<=5?'<span class="chip ok">Zona da Libertadores</span>':pos<=7?'<span class="chip neutral">G6/G7: depende da Copa do Brasil</span>':'<span class="chip neutral">Fora das zonas</span>';
-  const tg=full.groups.find(g=>g.teams.some(x=>x.k===HL));
+  const tg=zoneGroups('all',full.arr,full.groups,1).find(g=>g.teams.some(x=>x.k===HL));
   if(tg)chip+=`<span class="chip amber">${ICON} Empatado em pontos e vitórias com ${joinNames(tg.teams.filter(x=>x.k!==HL).map(x=>x.name))}</span>`;
   $('gind').innerHTML=`<button type="button" class="hl-btn" id="hlbtn" aria-haspopup="menu" aria-expanded="${!$('hlmenu').hidden}" title="Trocar de time" aria-label="Seu time: ${nm(HL)}. Trocar">${crest(HL,'lg')}<span class="chev" aria-hidden="true">▼</span></button>
     <span class="gind-name">${nm(HL)}</span><span class="gind-pos num">${pos}º</span><span class="gind-pts num">${t.pts} pts · ${t.j} jogos</span><span class="chips">${chip}</span>`;

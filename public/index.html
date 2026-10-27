@@ -320,10 +320,10 @@ tr.tie td.club,tr.tie td.pts{color:var(--amber)}
 
 <div class="wrap">
   <div class="tabs" role="tablist" aria-label="Simulações">
-    <button class="tab" role="tab" type="button" data-view="all" id="tab-all">Tabela completa</button>
+    <button class="tab" role="tab" type="button" data-view="team" id="tab-team">% por time</button>
     <button class="tab" role="tab" type="button" data-view="z4" id="tab-z4">Luta contra o Z4</button>
     <button class="tab" role="tab" type="button" data-view="lib" id="tab-lib">Pega Liberta ou não</button>
-    <button class="tab" role="tab" type="button" data-view="team" id="tab-team">% por time</button>
+    <button class="tab" role="tab" type="button" data-view="all" id="tab-all">Tabela completa</button>
   </div>
   <p class="upd">Dados após a 32ª rodada · atualizado em 27/10/2026</p>
   <div class="layout">
@@ -392,7 +392,7 @@ const esc=s=>String(s);
 
 /* ---------- Estado ---------- */
 const KEY='bf-sim-2026-v2';
-let state={res:{},sc:{}},view='all',HL=null,filter={all:null,z4:null,lib:null},openR=new Set();
+let state={res:{},sc:{}},view='team',HL=null,filter={all:null,z4:null,lib:null},openR=new Set();
 let tst={group:'z4',team:'GRE',res:{}};
 // a página sempre abre na tela inicial: nada é guardado entre visitas
 const save=()=>{};
@@ -731,11 +731,11 @@ function renderTeam(){
   for(const g of list){const r=tst.res[g.id];if(!r)continue;set++;const mine=g.h===k?'H':'A';pts+=r==='D'?1:r===mine?3:0}
   const missing=list.length-set,mc=monteCarlo(tst.res)[k],base=BASELINE[k];
   const isLib=tst.group==='lib';
-  const p=isLib?mc.top5:1-mc.down,pb=isLib?base.top5:1-base.down;
-  const cls=isLib?(p>=.5?'good':p>=.15?'mid':'bad'):(p>=.85?'good':p>=.5?'mid':'bad');
+  const p=isLib?mc.top5:mc.down,pb=isLib?base.top5:base.down;
+  const cls=isLib?(p>=.5?'good':p>=.15?'mid':'bad'):(p>=.5?'bad':p>=.15?'mid':'good');
   const isH=k===HL;
   $('main').innerHTML=`
-    <div class="tsticky ${cls}${isH?' hl':''}" aria-hidden="true">${crest(k)}<span class="tn">${nm(k)}</span><span class="tp2 num">${pts} pts</span><span class="tv"><small>${isLib?'Libertadores':'Permanência'}</small><b class="num">${pct(p)}</b></span></div>
+    <div class="tsticky ${cls}${isH?' hl':''}" aria-hidden="true">${crest(k)}<span class="tn">${nm(k)}</span><span class="tp2 num">${pts} pts</span><span class="tv"><small>${isLib?'Libertadores':'Cair'}</small><b class="num">${pct(p)}</b></span></div>
     <div class="games">${list.map(g=>{const r=tst.res[g.id],gH=HL&&(g.h===HL||g.a===HL),direct=grp.includes(g.h)&&grp.includes(g.a);
       return `<div class="game${gH?' hl':''}">
         <div class="g-meta"><span>${g.r===21?'Adiado · 21ª rodada':g.r+'ª rodada'}</span><span class="num">${g.d}</span>${direct?'<span class="tag direct">Confronto direto</span>':''}</div>
@@ -749,9 +749,9 @@ function renderTeam(){
       <div class="kpis">
         <div class="kpi"><span class="lab">Pontos</span><span class="big num">${pts}</span>
           <span class="sub">${missing?`${set} de ${list.length} jogos escolhidos. Com os ${missing} restantes sorteados, a média final fica em ${mc.avg.toFixed(1).replace('.',',')}.`:'Pontuação final em 38 jogos.'}</span></div>
-        <div class="kpi ${cls}"><span class="lab">${isLib?'Chance de Libertadores':'Chance de permanência na Série A'}</span><span class="big num">${pct(p)}</span>
+        <div class="kpi ${cls}"><span class="lab">${isLib?'Chance de Libertadores':'Chance de cair'}</span><span class="big num">${pct(p)}</span>
           <div class="meter" aria-hidden="true"><i style="width:${(p*100).toFixed(1)}%"></i></div>
-          <span class="sub">${isLib?`Termina no G5. Se abrir G6: ${pct(mc.top6)} · G7: ${pct(mc.top7)}.`:'Termina entre o 1º e o 16º.'}</span></div>
+          <span class="sub">${isLib?`Termina no G5. Se abrir G6: ${pct(mc.top6)} · G7: ${pct(mc.top7)}.`:'Termina do 17º ao 20º.'}</span></div>
         <div class="kpi"><span class="lab">Sem marcar nada</span><span class="big num">${pct(pb)}</span><span class="sub">Chance antes de qualquer resultado marcado.</span></div>
       </div>
       <p class="method">${SIMS.toLocaleString('pt-BR')} simulações do campeonato inteiro. Os jogos não marcados são sorteados por um modelo de Poisson: média de gols da Série A 2026, ataque e defesa de cada clube (gols pró e contra por jogo, puxados levemente para a média) e vantagem de mando. Desempate por pontos, vitórias, saldo e gols pró. O G6 e o G7 dependem dos finalistas da Copa do Brasil e do campeão da Libertadores.</p>

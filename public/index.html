@@ -48,7 +48,7 @@ button{font:inherit;color:inherit}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* Faixa do topo */
-.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--bg);border-bottom:1px solid var(--line);
+.topbar{position:relative;z-index:30;background:var(--bg);border-bottom:1px solid var(--line);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px}
 .topbar-in{max-width:1220px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .stripe{width:10px;align-self:stretch;min-height:40px;border-radius:2px;background:var(--stripe);box-shadow:0 0 0 1px var(--line)}
@@ -71,7 +71,7 @@ button{font:inherit;color:inherit}
 .chip.amber{background:var(--amber-tint);color:var(--amber);border-color:color-mix(in srgb,var(--amber) 40%,transparent);text-transform:none;letter-spacing:0;white-space:normal}
 .topbar .spacer{flex:1}
 .app-title{font-family:var(--font-display);font-weight:600;font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
-.hlmenu{position:fixed;z-index:40;top:calc(var(--top-h) + env(safe-area-inset-top,0px) + 4px);left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));max-width:460px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;box-shadow:0 14px 30px rgba(60,40,10,.25)}
+.hlmenu{position:fixed;z-index:40;top:80px;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));max-width:460px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;box-shadow:0 14px 30px rgba(60,40,10,.25)}
 .hlmenu p{margin:2px 4px 8px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
 .hlgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
 .hlmenu button{display:flex;align-items:center;gap:8px;background:none;border:1px solid transparent;border-radius:6px;padding:6px 8px;cursor:pointer;font-weight:600;text-align:left;font-size:14px;min-width:0}
@@ -331,7 +331,7 @@ tr.tie td.club,tr.tie td.pts{color:var(--amber)}
     <button class="tab" role="tab" type="button" data-view="lib" id="tab-lib">Pega Liberta ou não</button>
     <button class="tab" role="tab" type="button" data-view="all" id="tab-all">Tabela completa</button>
   </div>
-  <p class="upd">Dados após a 33ª rodada · atualizado em 03/11/2026</p>
+  <p class="upd">Dados após a 33ª rodada · atualizado em 04/11/2026 às 00:01</p>
   <div class="layout">
     <aside class="side" id="side" role="tabpanel"></aside>
     <main class="main" id="main"></main>
@@ -595,9 +595,10 @@ function showHLRow(){
   s.scrollTop+=row.getBoundingClientRect().top-s.getBoundingClientRect().top-s.clientHeight/2;
 }
 function layoutFix(){
-  document.documentElement.style.setProperty('--top-h',$('topbar').offsetHeight+'px');
+  // a faixa do time rola com a página; só a tabela fica presa no alto
+  document.documentElement.style.setProperty('--top-h','0px');
   const s=$('side');s.classList.remove('nosticky');
-  const free=window.innerHeight-$('topbar').offsetHeight;
+  const free=window.innerHeight;
   const max=window.innerWidth<920?free*0.78:free-24;
   if(s.offsetHeight>max)s.classList.add('nosticky');
 }
@@ -606,7 +607,7 @@ function layoutFix(){
 document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;view=b.dataset.view;closeMenu();render();window.scrollTo({top:0})});
 $('side').addEventListener('click',e=>{
   const row=e.target.closest('tr[data-team]');
-  if(row&&view!=='team'){const k=row.dataset.team;filter[view]=filter[view]===k?null:k;render();if(window.innerWidth<920){const s=$('side'),stuck=!s.classList.contains('nosticky');const y=$('main').getBoundingClientRect().top+window.scrollY-$('topbar').offsetHeight-(stuck?s.offsetHeight:0)-8;window.scrollTo({top:Math.max(0,y)})}return}
+  if(row&&view!=='team'){const k=row.dataset.team;filter[view]=filter[view]===k?null:k;render();if(window.innerWidth<920){const s=$('side'),stuck=!s.classList.contains('nosticky');const y=$('main').getBoundingClientRect().top+window.scrollY-(stuck?s.offsetHeight:0)-8;window.scrollTo({top:Math.max(0,y)})}return}
   const tb=e.target.closest('[data-tie]');if(tb){openPanel(lastGroups[+tb.dataset.tie].teams.map(t=>t.k));return}
   if(e.target.closest('#clear'))clearAll();
 });
@@ -644,7 +645,7 @@ function renderMenu(){
   $('hlmenu').innerHTML=`<p>Escolha seu time</p><div class="hlgrid">${list.map(t=>`<button type="button" role="menuitemradio" aria-checked="${t.k===HL}" data-hl="${t.k}">${crest(t.k,'sm')}<span class="nm">${t.name}</span></button>`).join('')}
     <button type="button" class="none" role="menuitemradio" aria-checked="${!HL}" data-hl="">Nenhum time em destaque</button></div>`;
 }
-function openMenu(){renderMenu();$('hlmenu').hidden=false;const b=$('hlbtn');b&&b.setAttribute('aria-expanded','true');const c=$('hlmenu').querySelector('[aria-checked="true"]');c&&c.focus()}
+function openMenu(){renderMenu();const hb=$('hlbtn');if(hb)$('hlmenu').style.top=Math.max(8,hb.getBoundingClientRect().bottom+6)+'px';$('hlmenu').hidden=false;const b=$('hlbtn');b&&b.setAttribute('aria-expanded','true');const c=$('hlmenu').querySelector('[aria-checked="true"]');c&&c.focus()}
 function closeMenu(){$('hlmenu').hidden=true;const b=$('hlbtn');b&&b.setAttribute('aria-expanded','false')}
 $('gind').addEventListener('click',e=>{if(e.target.closest('#hlbtn')){e.stopPropagation();$('hlmenu').hidden?openMenu():closeMenu()}});
 $('hlmenu').addEventListener('click',e=>{const b=e.target.closest('[data-hl]');if(!b)return;HL=b.dataset.hl||null;applyHL();closeMenu();render();const hb=$('hlbtn');hb&&hb.focus()});
@@ -786,6 +787,7 @@ function toast(msg,onUndo){
   t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,onUndo?6000:4200);
 }
 window.addEventListener('resize',layoutFix);
+window.addEventListener('scroll',()=>{if(!$('hlmenu').hidden)closeMenu()},{passive:true});
 try{new ResizeObserver(layoutFix).observe($('topbar'))}catch(e){}
 applyHL();
 render();

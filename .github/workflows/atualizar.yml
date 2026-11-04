@@ -1,0 +1,35 @@
+name: Atualizar resultados
+
+on:
+  schedule:
+    - cron: '4,19,34,49 * * * *'  # a cada 15 min: salva cada jogo logo que ele termina
+    - cron: '7 9 * * *'           # 06:07 de Brasília: varredura completa (datas remarcadas, atrasados)
+  workflow_dispatch:              # botão "Run workflow": varredura completa na hora
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atualizar-resultados
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/atualizar.js
+        env:
+          FULL: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '7 9 * * *' }}
+      - name: Salvar se mudou
+        run: |
+          if git diff --quiet; then echo "Sem mudanças"; exit 0; fi
+          git config user.name "atualizador-brigadefoice"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/index.html
+          git commit -m "Atualiza resultados do Brasileirão"
+          git pull --rebase
+          git push
